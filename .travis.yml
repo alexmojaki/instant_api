@@ -1,0 +1,32 @@
+dist: xenial
+language: python
+sudo: false
+
+python:
+  - 3.7
+  - 3.8
+
+env:
+  global:
+    - COVERALLS_PARALLEL=true
+
+before_install:
+  - pip install --upgrade coveralls setuptools>=44 setuptools_scm>=3.4.3 pep517
+
+install:
+  - python3 -m pep517.build -b .
+  - ls -l
+  - export WHLNAME=./dist/instant_api-0.CI-py3-none-any.whl
+  - mv ./dist/*.whl $WHLNAME
+  - pip install --upgrade "$WHLNAME[tests]"
+
+script:
+  - coverage run --branch --include='instant_api/*' -m pytest --junitxml=./rspec.xml
+  - coverage report -m
+
+after_success:
+  - coveralls
+
+notifications:
+  webhooks: https://coveralls.io/webhook
+  email: false
