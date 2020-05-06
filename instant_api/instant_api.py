@@ -73,6 +73,7 @@ class InstantAPI:
             GLOBAL_SUCCESS_SCHEMA,
             self.path,
             type(self).__name__,
+            "Generic JSON RPC endpoint",
         )
 
     def is_authenticated(self):
