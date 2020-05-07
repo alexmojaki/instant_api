@@ -199,6 +199,8 @@ api(Methods())
 
 If a function is missing a type annotation for any of its parameters or for the return value, an exception will be raised. If you don't want a method to be added to the API, prefix its name with an underscore, e.g. `def _foo(...)`.
 
+If a function has a docstring, it's first line will be shown in the Swagger UI.
+
 ### Intercepting requests
 
 To directly control how requests are handled, create a subclass of `InstantAPI` and override one of these methods:
