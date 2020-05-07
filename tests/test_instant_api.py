@@ -88,4 +88,5 @@ def test_notification():
 
 def test_apispec():
     response = flask_client.get("/apispec_1.json")
+    print(response.data)
     assert response.json == file_to_json("apispec.json")

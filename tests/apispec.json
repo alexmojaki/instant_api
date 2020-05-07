@@ -3,144 +3,144 @@
     "translate_body": {
       "properties": {
         "id": {
-          "format": "int32", 
+          "format": "int32",
           "type": "integer"
-        }, 
+        },
         "jsonrpc": {
           "enum": [
             "2.0"
-          ], 
+          ],
           "type": "string"
-        }, 
+        },
         "method": {
           "enum": [
             "translate"
-          ], 
+          ],
           "type": "string"
-        }, 
+        },
         "params": {
           "properties": {
             "dx": {
-              "format": "int32", 
+              "format": "int32",
               "type": "integer"
-            }, 
+            },
             "dy": {
-              "format": "int32", 
+              "format": "int32",
               "type": "integer"
-            }, 
+            },
             "p": {
               "properties": {
                 "x": {
-                  "format": "int32", 
+                  "format": "int32",
                   "type": "integer"
-                }, 
+                },
                 "y": {
-                  "format": "int32", 
+                  "format": "int32",
                   "type": "integer"
                 }
-              }, 
+              },
               "required": [
-                "x", 
+                "x",
                 "y"
-              ], 
+              ],
               "type": "object"
             }
-          }, 
+          },
           "required": [
-            "dx", 
-            "dy", 
+            "dx",
+            "dy",
             "p"
-          ], 
+          ],
           "type": "object"
         }
-      }, 
+      },
       "required": [
-        "id", 
-        "jsonrpc", 
-        "method", 
+        "id",
+        "jsonrpc",
+        "method",
         "params"
-      ], 
+      ],
       "type": "object"
-    }, 
+    },
     "translate_success": {
       "properties": {
         "id": {
-          "format": "int32", 
+          "format": "int32",
           "type": "integer"
-        }, 
+        },
         "jsonrpc": {
           "enum": [
             "2.0"
-          ], 
+          ],
           "type": "string"
-        }, 
+        },
         "result": {
           "properties": {
             "x": {
-              "format": "int32", 
+              "format": "int32",
               "type": "integer"
-            }, 
+            },
             "y": {
-              "format": "int32", 
+              "format": "int32",
               "type": "integer"
             }
-          }, 
+          },
           "required": [
-            "x", 
+            "x",
             "y"
-          ], 
+          ],
           "type": "object"
         }
-      }, 
+      },
       "required": [
-        "id", 
-        "jsonrpc", 
+        "id",
+        "jsonrpc",
         "result"
-      ], 
+      ],
       "type": "object"
     }
-  }, 
+  },
   "info": {
-    "description": "powered by Flasgger", 
-    "termsOfService": "/tos", 
-    "title": "A swagger API", 
+    "description": "powered by Flasgger",
+    "termsOfService": "/tos",
+    "title": "A swagger API",
     "version": "0.0.1"
-  }, 
+  },
   "paths": {
     "/api/": {
       "post": {
         "consumes": [
           "application/json"
-        ], 
+        ],
         "parameters": [
           {
-            "in": "body", 
-            "name": "body", 
-            "required": true, 
+            "in": "body",
+            "name": "body",
+            "required": true,
             "schema": {
               "properties": {
                 "id": {
                   "type": "integer"
-                }, 
+                },
                 "jsonrpc": {
                   "enum": [
                     "2.0"
-                  ], 
+                  ],
                   "type": "string"
-                }, 
+                },
                 "method": {
                   "type": "string"
-                }, 
+                },
                 "params": {
                   "type": "object"
                 }
               }
             }
           }
-        ], 
+        ],
         "produces": [
           "application/json"
-        ], 
+        ],
         "responses": {
           "Error": {
             "schema": {
@@ -149,66 +149,67 @@
                   "properties": {
                     "code": {
                       "type": "integer"
-                    }, 
+                    },
                     "data": {
                       "type": "object"
-                    }, 
+                    },
                     "message": {
                       "type": "string"
                     }
                   }
-                }, 
+                },
                 "id": {
                   "type": "integer"
-                }, 
+                },
                 "jsonrpc": {
                   "enum": [
                     "2.0"
-                  ], 
+                  ],
                   "type": "string"
                 }
               }
             }
-          }, 
+          },
           "Success": {
             "schema": {
               "properties": {
                 "id": {
                   "type": "integer"
-                }, 
+                },
                 "jsonrpc": {
                   "enum": [
                     "2.0"
-                  ], 
+                  ],
                   "type": "string"
-                }, 
+                },
                 "result": {
                   "type": "object"
                 }
               }
             }
           }
-        }
+        },
+        "summary": "Generic JSON RPC endpoint"
       }
-    }, 
+    },
     "/api/translate": {
       "post": {
         "consumes": [
           "application/json"
-        ], 
+        ],
         "parameters": [
           {
-            "in": "body", 
-            "name": "body", 
-            "required": true, 
+            "in": "body",
+            "name": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/translate_body"
             }
           }
-        ], 
+        ],
         "produces": [
           "application/json"
-        ], 
+        ],
         "responses": {
           "Error": {
             "schema": {
@@ -217,36 +218,36 @@
                   "properties": {
                     "code": {
                       "type": "integer"
-                    }, 
+                    },
                     "data": {
                       "type": "object"
-                    }, 
+                    },
                     "message": {
                       "type": "string"
                     }
                   }
-                }, 
+                },
                 "id": {
                   "type": "integer"
-                }, 
+                },
                 "jsonrpc": {
                   "enum": [
                     "2.0"
-                  ], 
+                  ],
                   "type": "string"
                 }
               }
             }
-          }, 
+          },
           "Success": {
             "schema": {
               "$ref": "#/definitions/translate_success"
             }
           }
-        }, 
+        },
         "summary": "Move a point by dx and dy."
       }
     }
-  }, 
+  },
   "swagger": "2.0"
 }
