@@ -38,7 +38,23 @@ Visit http://127.0.0.1:5000/apidocs/ for a complete Swagger GUI to try out the A
 
 ![Swagger overview](images/swagger_overview.png)
 
-The API implements the standard [JSON-RPC](https://www.jsonrpc.org/) protocol, making it easy to use libraries in existing languages to communicate with minimal boilerplate. The protocol is so simple that you don't even need a library. Here is a simple Python example of calling a method:
+The API implements the standard [JSON-RPC](https://www.jsonrpc.org/) protocol, making it easy to use libraries in existing languages to communicate with minimal boilerplate.
+
+If you need a Python client, I highly recommend the companion library [instant_client](https://github.com/alexmojaki/instant_client). Basic usage looks like:
+
+```python
+from server import Methods, Point  # the classes we defined above
+from instant_client import InstantClient
+
+# The type hint is a lie, but your linter/IDE doesn't know that!
+methods: Methods = InstantClient("http://127.0.0.1:5000/api/", Methods()).methods
+
+assert methods.scale(Point(1, 2), factor=3) == Point(3, 6)
+```
+
+That looks a lot like it just called `Methods.scale()` directly, which is the point (no pun intended), but under the hood it did in fact send an HTTP request to the server.
+
+If a library doesn't suit your needs, or if you're wondering what the protocol looks like, it's very simple. Here's a the same call done 'manually':
 
 ```python
 import requests
@@ -56,5 +72,7 @@ response = requests.post(
     },
 )
 
-print(response.json()['result'])  # prints {'x': 3, 'y': 6}
+assert response.json()['result'] == {'x': 3, 'y': 6}
 ```
+
+`instant_api` and `instant_client` use [`datafunctions`](https://github.com/alexmojaki/datafunctions) under the hood (which in turn uses [`marshmallow`](https://marshmallow.readthedocs.io/)) to transparently handle conversion between JSON and Python classes on both ends. All this means you can focus on writing 'normal' Python and worry less about the communication details.

@@ -117,6 +117,8 @@ class InstantAPI:
             if not name.startswith("_"):
                 self._decorate_function(func)
 
+        return func_class_or_obj
+
     def _decorate_function(self, func):
         try:
             inspect.signature(func)
