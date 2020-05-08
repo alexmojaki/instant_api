@@ -2,6 +2,7 @@ import functools
 import inspect
 import traceback
 from dataclasses import dataclass
+from typing import Dict, Any
 
 from datafunctions import datafunction, ArgumentError
 from flasgger import SwaggerView, Swagger
@@ -49,21 +50,78 @@ class MySwagger(Swagger):
 
     def get_apispecs(self, *args, **kwargs):
         result = super().get_apispecs(*args, **kwargs)
+
+        # To make the Swagger UI more user friendly, specify the values of constants
+        # for the method paths whose schemas are partially defined using marshmallow
         for method in self._instant_methods:
             result["definitions"][f"{method}_body"]["properties"]["method"]["enum"] = [method]
             result["definitions"][f"{method}_body"]["properties"]["jsonrpc"]["enum"] = ["2.0"]
             result["definitions"][f"{method}_success"]["properties"]["jsonrpc"]["enum"] = ["2.0"]
+
         return result
 
 
 class InstantAPI:
+    """
+    Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. Just add methods!
+
+    Basic usage looks like this::
+
+        from dataclasses import dataclass
+        from flask import Flask
+        from instant_api import InstantAPI
+
+        app = Flask(__name__)
+
+        @dataclass
+        class Point:
+            x: int
+            y: int
+
+        @InstantAPI(app)
+        class Methods:
+            def translate(self, p: Point, dx: int, dy: int) -> Point:
+                return Point(p.x + dx, p.y + dy)
+
+            def scale(self, p: Point, factor: int) -> Point:
+                return Point(p.x * factor, p.y * factor)
+
+        if __name__ == '__main__':
+            app.run()
+
+    See the README at https://github.com/alexmojaki/instant_api for more details.
+
+    Instances are callable so that they can be used as a decorator to add methods.
+    See the docstring for __call__.
+
+    You can subclass this class and override the following methods to customise behaviour:
+        - is_authenticated
+        - handle_request
+        - call_method
+    """
+
     def __init__(
             self,
             app: Flask,
             *,
             path: str = "/api/",
-            swagger_kwargs: dict = None,
+            swagger_kwargs: Dict[str, Any] = None,
     ):
+        """
+        - `app` is a Flask app (https://flask.palletsprojects.com/en/1.1.x/)
+            to which URL rules are added for the RPC.
+        - `path` is the endpoint
+            that will be added to the app for the JSON RPC.
+            This is where requests will be POSTed.
+            There will also be a path for each method based on the function name,
+            e.g. `/api/scale` and `/api/translate`, but these all behave identically
+            (in particular the body must still specify a `"method"` key)
+            and are only there to make the Swagger UI usable.
+        - `swagger_kwargs` is a dictionary of keyword arguments
+            to pass to the `flasgger.Swagger`
+            (https://github.com/flasgger/flasgger#externally-loading-swagger-ui-and-jquery-jscss)
+            constructor that is called with the app.
+        """
         self.app = app
         self.path = path.rstrip("/") + "/"
         self.dispatcher = Dispatcher()
@@ -77,12 +135,22 @@ class InstantAPI:
         )
 
     def is_authenticated(self):
+        """
+        Override and return False for certain requests to deny any access to the API.
+        """
         return True
 
     def handle_request(self):
+        """
+        Entrypoint which converts a raw flask request to a response.
+        """
         if not self.is_authenticated():
             return "Forbidden", 403
+
+        # Forward the request to the correct method
+        # Ultimately this calls call_method
         result = JSONRPCResponseManager.handle(request.get_data(), self.dispatcher)
+
         if result is None:
             # Request was a notification, i.e. client doesn't need response
             return ""
@@ -90,6 +158,10 @@ class InstantAPI:
             return result.data
 
     def call_method(self, func, *args, **kwargs):
+        """
+        Calls the API method `func` with the given arguments.
+        The arguments here are not yet deserialized according to the function type annotations.
+        """
         try:
             return func(*args, **kwargs)
         except ArgumentError as e:
@@ -106,6 +178,46 @@ class InstantAPI:
             )
 
     def __call__(self, func_class_or_obj):
+        """
+        Accepts any object, with special treatment for functions and classes,
+        so this can be used as a decorator.
+
+        Decorating a single function adds it as an API method.
+        The function itself should not be a method of a class,
+        since there is no way to provide the first argument `self`.
+
+        Decorating a class will construct an instance of the class without arguments
+        and then call the resulting object as described below.
+        This means it will add bound methods, so the `self` argument is ignored.
+
+        Passing an object will search through all its attributes
+        and add to the API all functions (including bound methods)
+        whose name doesn't start with an underscore (`_`).
+
+        So given `api = InstantAPI(app)`, all of these are equivalent:
+
+            @api
+            def foo(bar: Bar) -> Spam:
+                ...
+
+            api(foo)
+
+            @api
+            class Methods:
+                def foo(self, bar: Bar) -> Spam:
+                    ...
+
+            api(Methods)
+
+            api(Methods())
+
+        If a function is missing a type annotation for any of its parameters or for the return value,
+        an exception will be raised.
+        If you don't want a method to be added to the API,
+        prefix its name with an underscore, e.g. `def _foo(...)`.
+
+        If a function has a docstring, it's first line will be shown in the Swagger UI.
+        """
         if isinstance(func_class_or_obj, type):
             cls = func_class_or_obj
             self(cls())
@@ -162,7 +274,7 @@ class InstantAPI:
             ((func.__doc__ or "").strip().splitlines() or [""])[0],
         )
 
-    def _add_view(self, body_schema, success_schema, path, view_name, doc=""):
+    def _add_view(self, body_schema, success_schema, path: str, view_name: str, doc: str):
         instant_api_self = self
 
         class MethodView(SwaggerView):
@@ -191,5 +303,5 @@ class InstantAPI:
         )
 
 
-def format_exception(e):
+def format_exception(e: BaseException):
     return "".join(traceback.format_exception_only(type(e), e)).rstrip()

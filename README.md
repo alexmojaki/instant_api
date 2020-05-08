@@ -176,7 +176,7 @@ Decorating a single function adds it as an API method, as you'd expect. The func
 
 Calling `InstantAPI` with an object will search through all its attributes and add to the API all functions (including bound methods) whose name doesn't start with an underscore (`_`).
 
-Decorating a class will construct an instance of the class without arguments and then call the resulting object as described above. The means it will add bound methods, so the `self` argument is ignored.
+Decorating a class will construct an instance of the class without arguments and then call the resulting object as described above. This means it will add bound methods, so the `self` argument is ignored.
 
 So given `api = InstantAPI(app)`, all of these are equivalent:
 
