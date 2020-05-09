@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ from jsonrpcclient.exceptions import ReceivedErrorResponseError
 from littleutils import file_to_json
 
 app = Flask(__name__)
+folder = Path(__file__).parent
 
 
 @dataclass
@@ -89,4 +91,4 @@ def test_notification():
 def test_apispec():
     response = flask_client.get("/apispec_1.json")
     print(response.data)
-    assert response.json == file_to_json("apispec.json")
+    assert response.json == file_to_json(folder / "apispec.json")
