@@ -81,6 +81,8 @@ assert response.json()['result'] == {'x': 3, 'y': 6}
 
 `instant_api` and `instant_client` use [`datafunctions`](https://github.com/alexmojaki/datafunctions) under the hood (which in turn uses [`marshmallow`](https://marshmallow.readthedocs.io/)) to transparently handle conversion between JSON and Python classes on both ends. All this means you can focus on writing 'normal' Python and worry less about the communication details. The Swagger UI is provided by [Flasgger](https://github.com/flasgger/flasgger), and the protocol is handled by the [json-rpc](https://github.com/pavlov99/json-rpc) library.
 
+Because other libraries do so much of the work, `instant_api` itself is a very small library, essentially contained in [one little file](https://github.com/alexmojaki/instant_api/blob/master/instant_api/instant_api.py). You can probably read the source code pretty easily and adapt it to your needs. 
+
 ## Configuration and other details
 
 ### Class parameters
