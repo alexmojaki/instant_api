@@ -12,7 +12,7 @@ then
     echo "${0} <major>.<minor>.<patch>"
     exit 1
 else
-    if [[ ${1} =~ ^v?([0-9]+)(\.[0-9]+)?(\.[0-9]+)?$ ]]; then
+    if [[ ${1} =~ ^([0-9]+)(\.[0-9]+)?(\.[0-9]+)?$ ]]; then
         :
     else
         echo "Not a valid release tag."
