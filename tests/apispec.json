@@ -1,64 +1,37 @@
 {
   "definitions": {
-    "translate_body": {
+    "translate_params_schema": {
       "properties": {
-        "id": {
+        "dx": {
           "format": "int32",
           "type": "integer"
         },
-        "jsonrpc": {
-          "enum": [
-            "2.0"
-          ],
-          "type": "string"
+        "dy": {
+          "format": "int32",
+          "type": "integer"
         },
-        "method": {
-          "enum": [
-            "translate"
-          ],
-          "type": "string"
-        },
-        "params": {
+        "p": {
           "properties": {
-            "dx": {
+            "x": {
               "format": "int32",
               "type": "integer"
             },
-            "dy": {
+            "y": {
               "format": "int32",
               "type": "integer"
-            },
-            "p": {
-              "properties": {
-                "x": {
-                  "format": "int32",
-                  "type": "integer"
-                },
-                "y": {
-                  "format": "int32",
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "x",
-                "y"
-              ],
-              "type": "object"
             }
           },
           "required": [
-            "dx",
-            "dy",
-            "p"
+            "x",
+            "y"
           ],
           "type": "object"
         }
       },
       "required": [
-        "id",
-        "jsonrpc",
-        "method",
-        "params"
+        "dx",
+        "dy",
+        "p"
       ],
       "type": "object"
     },
@@ -69,9 +42,6 @@
           "type": "integer"
         },
         "jsonrpc": {
-          "enum": [
-            "2.0"
-          ],
           "type": "string"
         },
         "result": {
@@ -203,7 +173,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/translate_body"
+              "$ref": "#/definitions/translate_params_schema"
             }
           }
         ],
