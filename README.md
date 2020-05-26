@@ -3,9 +3,10 @@
 </h1>
 
 <p align="center">
-[![Build Status](https://travis-ci.org/alexmojaki/instant_api.svg?branch=master)](https://travis-ci.org/alexmojaki/instant_api) [![Coverage Status](https://coveralls.io/repos/github/alexmojaki/instant_api/badge.svg?branch=master)](https://coveralls.io/github/alexmojaki/instant_api?branch=master) [![Supports Python versions 3.7+](https://img.shields.io/pypi/pyversions/instant_api.svg)](https://pypi.python.org/pypi/instant_api)
-</p>
-
+    <a href="https://travis-ci.org/alexmojaki/instant_api"><img src="https://travis-ci.org/alexmojaki/instant_api.svg?branch=master" alt="Build Status"></a>
+    <a href="https://coveralls.io/github/alexmojaki/instant_api?branch=master"><img src="https://coveralls.io/repos/github/alexmojaki/instant_api/badge.svg?branch=master" alt="Coverage Status"></a>
+    <a href="https://pypi.python.org/pypi/instant_api"><img src="https://img.shields.io/pypi/pyversions/instant_api.svg" alt="Supports Python versions 3.7+"></a>
+    
 # instant_api
 
 Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. All the boring stuff is done for you. Just add methods!
