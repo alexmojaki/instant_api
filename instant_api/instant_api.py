@@ -140,7 +140,7 @@ class InstantAPI:
         if method is not None:
             request_data = (
                 '{'
-                '   "id": 0,'
+                '   "id": null,'
                 '   "jsonrpc": "2.0",'
                 f'  "method": {json.dumps(method)},'
                 f'  "params": {request_data}'

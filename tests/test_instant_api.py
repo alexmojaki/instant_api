@@ -70,7 +70,7 @@ def test_method_path():
     )
     data = json.loads(response.data.decode())
     assert {
-               "id": 0,
+               "id": None,
                "jsonrpc": "2.0",
                "result": {"x": 4, "y": 6},
            } == data
