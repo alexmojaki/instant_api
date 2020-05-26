@@ -204,7 +204,7 @@ If a function has a docstring, it's first line will be shown in the Swagger UI.
 
 To directly control how requests are handled, create a subclass of `InstantAPI` and override one of these methods:
 
-- `handle_request(self)` is the entrypoint which converts a raw flask request to a response.
+- `handle_request(self, method)` is the entrypoint which converts a raw flask request to a response. If `method` is None, the request was made to the generic JSON-RPC path. Otherwise `method` is a string with the method name at the end of the request path.
 - `call_method(self, func, *args, **kwargs)` calls the API method `func` with the given arguments. The arguments here are not yet deserialized according to the function type annotations.
 
 Unless you're doing something very weird, remember to call the parent method with `super()` somewhere.
