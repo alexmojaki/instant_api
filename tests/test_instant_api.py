@@ -1,3 +1,4 @@
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -57,10 +58,22 @@ client_methods = InstantClient(rpc_client, Methods()).methods
 def test_simple():
     for methods in [
         client_methods,
-        InstantClient(_TestJsonRpcClient(flask_client, "/api/translate"), Methods()).methods,
         Methods(),
     ]:
         assert methods.translate(Point(1, 2), 3, 4) == Point(4, 6)
+
+
+def test_method_path():
+    response = flask_client.post(
+        "/api/translate",
+        data=json.dumps({"p": {"x": 1, "y": 2}, "dx": 3, "dy": 4}).encode(),
+    )
+    data = json.loads(response.data.decode())
+    assert {
+               "id": None,
+               "jsonrpc": "2.0",
+               "result": {"x": 4, "y": 6},
+           } == data
 
 
 def test_server_type_error():

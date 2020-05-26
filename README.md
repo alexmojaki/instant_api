@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/alexmojaki/instant_api.svg?branch=master)](https://travis-ci.org/alexmojaki/instant_api) [![Coverage Status](https://coveralls.io/repos/github/alexmojaki/instant_api/badge.svg?branch=master)](https://coveralls.io/github/alexmojaki/instant_api?branch=master) [![Supports Python versions 3.7+](https://img.shields.io/pypi/pyversions/instant_api.svg)](https://pypi.python.org/pypi/instant_api)
 
-Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. Just add methods!
+Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. All the boring stuff is done for you. Just add methods!
 
     pip install instant-api
 
@@ -10,7 +10,7 @@ Or to also install the corresponding Python client:
 
     pip install 'instant-api[client]'
 
-Basic usage looks like this:
+Basic usage looks like the below. Just write some Python functions or methods and decorate them. Parameters and the return value need type annotations so that they can be converted to and from JSON for you. You can use dataclasses for complex values.
 
 ```python
 from dataclasses import dataclass
@@ -42,9 +42,9 @@ Visit http://127.0.0.1:5000/apidocs/ for a complete Swagger GUI to try out the A
 
 ![Swagger overview](images/swagger_overview.png)
 
-The API implements the standard [JSON-RPC](https://www.jsonrpc.org/) protocol, making it easy to use libraries in existing languages to communicate with minimal boilerplate.
+The API has two flavours. Firstly, the generic endpoint `/api/` implements the standard [JSON-RPC](https://www.jsonrpc.org/) protocol, making it easy to use libraries in existing languages to communicate with minimal boilerplate.
 
-If you need a Python client, I highly recommend the companion library [instant_client](https://github.com/alexmojaki/instant_client). Basic usage looks like:
+If you need a Python client, I highly recommend the companion library [instant_client](https://github.com/alexmojaki/instant_client). It handles data conversion on the client side and works well with developer tools. Basic usage looks like:
 
 ```python
 from server import Methods, Point  # the classes we defined above
@@ -58,26 +58,23 @@ assert methods.scale(Point(1, 2), factor=3) == Point(3, 6)
 
 That looks a lot like it just called `Methods.scale()` directly, which is the point (no pun intended), but under the hood it did in fact send an HTTP request to the server.
 
-If a library doesn't suit your needs, or if you're wondering what the protocol looks like, it's very simple. Here's a the same call done 'manually':
+You can also make requests directly to paths for each method, sending only the parameters object, which is a bit simpler than the full JSON-RPC protocol. Here's what such a call looks like:  
 
 ```python
 import requests
 
 response = requests.post(
-    'http://127.0.0.1:5000/api/',
+    'http://127.0.0.1:5000/api/scale',
     json={
-        'id': 0, 
-        'jsonrpc': '2.0', 
-        'method': 'scale', 
-        'params': {
-            'p': {'x': 1, 'y': 2}, 
-            'factor': 3,
-        },
+        'p': {'x': 1, 'y': 2}, 
+        'factor': 3,
     },
 )
 
 assert response.json()['result'] == {'x': 3, 'y': 6}
 ```
+
+The response will be a complete JSON-RPC response as if you had made a full JSON-RPC request. In particular it will either have a `result` or an `error` key.
 
 `instant_api` and `instant_client` use [`datafunctions`](https://github.com/alexmojaki/datafunctions) under the hood (which in turn uses [`marshmallow`](https://marshmallow.readthedocs.io/)) to transparently handle conversion between JSON and Python classes on both ends. All this means you can focus on writing 'normal' Python and worry less about the communication details. The Swagger UI is provided by [Flasgger](https://github.com/flasgger/flasgger), and the protocol is handled by the [json-rpc](https://github.com/pavlov99/json-rpc) library.
 
@@ -207,7 +204,7 @@ If a function has a docstring, it's first line will be shown in the Swagger UI.
 
 To directly control how requests are handled, create a subclass of `InstantAPI` and override one of these methods:
 
-- `handle_request(self)` is the entrypoint which converts a raw flask request to a response.
+- `handle_request(self, method)` is the entrypoint which converts a raw flask request to a response. If `method` is None, the request was made to the generic JSON-RPC path. Otherwise `method` is a string with the method name at the end of the request path.
 - `call_method(self, func, *args, **kwargs)` calls the API method `func` with the given arguments. The arguments here are not yet deserialized according to the function type annotations.
 
 Unless you're doing something very weird, remember to call the parent method with `super()` somewhere.

@@ -1,8 +1,9 @@
 import functools
 import inspect
+import json
 import traceback
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from datafunctions import datafunction, ArgumentError
 from flasgger import SwaggerView, Swagger
@@ -41,24 +42,6 @@ ERROR_SCHEMA = _make_schema(
         },
     },
 )
-
-
-class MySwagger(Swagger):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._instant_methods = []
-
-    def get_apispecs(self, *args, **kwargs):
-        result = super().get_apispecs(*args, **kwargs)
-
-        # To make the Swagger UI more user friendly, specify the values of constants
-        # for the method paths whose schemas are partially defined using marshmallow
-        for method in self._instant_methods:
-            result["definitions"][f"{method}_body"]["properties"]["method"]["enum"] = [method]
-            result["definitions"][f"{method}_body"]["properties"]["jsonrpc"]["enum"] = ["2.0"]
-            result["definitions"][f"{method}_success"]["properties"]["jsonrpc"]["enum"] = ["2.0"]
-
-        return result
 
 
 class InstantAPI:
@@ -125,13 +108,14 @@ class InstantAPI:
         self.app = app
         self.path = path.rstrip("/") + "/"
         self.dispatcher = Dispatcher()
-        self.swagger = MySwagger(app, **(swagger_kwargs or {}))
+        self.swagger = Swagger(app, **(swagger_kwargs or {}))
         self._add_view(
             GLOBAL_PARAMS_SCHEMA,
             GLOBAL_SUCCESS_SCHEMA,
             self.path,
             type(self).__name__,
             "Generic JSON RPC endpoint",
+            method=None,
         )
 
     def is_authenticated(self):
@@ -140,16 +124,29 @@ class InstantAPI:
         """
         return True
 
-    def handle_request(self):
+    def handle_request(self, method: Optional[str]):
         """
         Entrypoint which converts a raw flask request to a response.
+
+        If `method` is None, the request was made to the generic JSON-RPC path.
+        Otherwise `method` is a string with the method name at the end of the request path.
         """
         if not self.is_authenticated():
             return "Forbidden", 403
 
         # Forward the request to the correct method
         # Ultimately this calls call_method
-        result = JSONRPCResponseManager.handle(request.get_data(), self.dispatcher)
+        request_data = request.get_data(as_text=True)
+        if method is not None:
+            request_data = (
+                '{'
+                '   "id": null,'
+                '   "jsonrpc": "2.0",'
+                f'  "method": {json.dumps(method)},'
+                f'  "params": {request_data}'
+                '}'
+            )
+        result = JSONRPCResponseManager.handle(request_data, self.dispatcher)
 
         if result is None:
             # Request was a notification, i.e. client doesn't need response
@@ -238,23 +235,13 @@ class InstantAPI:
             return
 
         name = func.__name__
-        self.swagger._instant_methods.append(name)
-        func = datafunction()(func)
+        func: datafunction = datafunction(func)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             return self.call_method(func, *args, **kwargs)
 
         self.dispatcher.add_method(wrapper)
-
-        class _Body:
-            id: int
-            method: str
-            params: func.params_schemas.dataclass
-            jsonrpc: str
-
-        Body = class_schema(_Body)
-        Body.__name__ = f"{name}_body"
 
         @dataclass
         class _Success:
@@ -267,14 +254,23 @@ class InstantAPI:
         Success.__name__ = f"{name}_success"
 
         self._add_view(
-            Body,
+            func.params_schemas.schema_class,
             Success,
             self.path + name,
             type(self).__name__ + "_" + name,
             ((func.__doc__ or "").strip().splitlines() or [""])[0],
+            method=name,
         )
 
-    def _add_view(self, body_schema, success_schema, path: str, view_name: str, doc: str):
+    def _add_view(
+            self,
+            body_schema,
+            success_schema,
+            path: str,
+            view_name: str,
+            doc: str,
+            method: Optional[str],
+    ):
         instant_api_self = self
 
         class MethodView(SwaggerView):
@@ -292,7 +288,7 @@ class InstantAPI:
             }
 
             def post(self):
-                return instant_api_self.handle_request()
+                return instant_api_self.handle_request(method)
 
         MethodView.post.__doc__ = doc
 
