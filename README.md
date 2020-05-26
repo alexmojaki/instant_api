@@ -1,6 +1,10 @@
-# instant_api
+<h1 align="center">
+  <img src="images/tin.png" width="256px" height="256px" alt="logo">
+</h1>
 
 [![Build Status](https://travis-ci.org/alexmojaki/instant_api.svg?branch=master)](https://travis-ci.org/alexmojaki/instant_api) [![Coverage Status](https://coveralls.io/repos/github/alexmojaki/instant_api/badge.svg?branch=master)](https://coveralls.io/github/alexmojaki/instant_api?branch=master) [![Supports Python versions 3.7+](https://img.shields.io/pypi/pyversions/instant_api.svg)](https://pypi.python.org/pypi/instant_api)
+
+# instant_api
 
 Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. All the boring stuff is done for you. Just add methods!
 
