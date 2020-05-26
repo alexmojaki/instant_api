@@ -243,15 +243,6 @@ class InstantAPI:
 
         self.dispatcher.add_method(wrapper)
 
-        class _Body:
-            id: int
-            method: str
-            params: func.params_schemas.dataclass
-            jsonrpc: str
-
-        Body = class_schema(_Body)
-        Body.__name__ = f"{name}_body"
-
         @dataclass
         class _Success:
             id: int
