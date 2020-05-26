@@ -1,6 +1,6 @@
-<h1 align="center">
+<p align="center">
   <img src="images/tin.png" width="256px" height="256px" alt="logo">
-</h1>
+</p>
 
 <p align="center">
     <a href="https://travis-ci.org/alexmojaki/instant_api"><img src="https://travis-ci.org/alexmojaki/instant_api.svg?branch=master" alt="Build Status"></a>
