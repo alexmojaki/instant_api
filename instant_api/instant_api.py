@@ -3,6 +3,7 @@ import inspect
 import json
 import traceback
 from dataclasses import dataclass
+from textwrap import dedent
 from typing import Dict, Any, Optional
 
 from datafunctions import datafunction, ArgumentError
@@ -258,7 +259,7 @@ class InstantAPI:
             Success,
             self.path + name,
             type(self).__name__ + "_" + name,
-            ((func.__doc__ or "").strip().splitlines() or [""])[0],
+            func.__doc__,
             method=name,
         )
 
@@ -274,6 +275,7 @@ class InstantAPI:
         instant_api_self = self
 
         class MethodView(SwaggerView):
+            summary, _, description = dedent(doc or "").strip().partition("\n")
             parameters = [
                 {
                     "name": "body",
@@ -289,8 +291,6 @@ class InstantAPI:
 
             def post(self):
                 return instant_api_self.handle_request(method)
-
-        MethodView.post.__doc__ = doc
 
         self.app.add_url_rule(
             path,

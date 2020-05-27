@@ -167,6 +167,7 @@
         "consumes": [
           "application/json"
         ],
+        "description": "Other stuff here that goes into the description.",
         "parameters": [
           {
             "in": "body",

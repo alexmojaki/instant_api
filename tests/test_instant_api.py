@@ -29,7 +29,7 @@ class Methods:
     def translate(self, p: Point, dx: int, dy: int) -> Point:
         """
         Move a point by dx and dy.
-        Other stuff here doesn't go into swagger.
+        Other stuff here that goes into the description.
         """
         return Point(p.x + dx, p.y + dy)
 
