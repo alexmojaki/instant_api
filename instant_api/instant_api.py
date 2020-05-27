@@ -111,6 +111,7 @@ class InstantAPI:
         self.dispatcher = Dispatcher()
         self.swagger = Swagger(app, **(swagger_kwargs or {}))
         self._add_view(
+            {"tags": ["JSON-RPC"]},
             GLOBAL_PARAMS_SCHEMA,
             GLOBAL_SUCCESS_SCHEMA,
             self.path,
@@ -175,7 +176,7 @@ class InstantAPI:
                 data=data,
             )
 
-    def __call__(self, func_class_or_obj):
+    def __call__(self, func_class_or_obj: Any = None, *, swagger_view_attrs: dict = None):
         """
         Accepts any object, with special treatment for functions and classes,
         so this can be used as a decorator.
@@ -216,20 +217,26 @@ class InstantAPI:
 
         If a function has a docstring, it's first line will be shown in the Swagger UI.
         """
+
+        if func_class_or_obj is None:
+            # Decorator with arguments
+            return functools.partial(self, swagger_view_attrs=swagger_view_attrs)
+
         if isinstance(func_class_or_obj, type):
             cls = func_class_or_obj
-            self(cls())
+            self(cls(), swagger_view_attrs=swagger_view_attrs)
             return cls
 
-        self._decorate_function(func_class_or_obj)
+        # noinspection PyTypeChecker
+        self._decorate_function(func_class_or_obj, swagger_view_attrs)
         methods = func_class_or_obj
         for name, func in inspect.getmembers(methods):
             if not name.startswith("_"):
-                self._decorate_function(func)
+                self._decorate_function(func, swagger_view_attrs)
 
         return func_class_or_obj
 
-    def _decorate_function(self, func):
+    def _decorate_function(self, func, swagger_view_attrs):
         try:
             inspect.signature(func)
         except Exception:
@@ -255,6 +262,7 @@ class InstantAPI:
         Success.__name__ = f"{name}_success"
 
         self._add_view(
+            swagger_view_attrs or {},
             func.params_schemas.schema_class,
             Success,
             self.path + name,
@@ -265,6 +273,7 @@ class InstantAPI:
 
     def _add_view(
             self,
+            swagger_view_attrs: dict,
             body_schema,
             success_schema,
             path: str,
@@ -288,6 +297,9 @@ class InstantAPI:
                 "Success": {"schema": success_schema},
                 "Error": {"schema": ERROR_SCHEMA},
             }
+            tags = ["Methods"]
+
+            locals().update(swagger_view_attrs)
 
             def post(self):
                 return instant_api_self.handle_request(method)

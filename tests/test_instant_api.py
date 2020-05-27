@@ -24,7 +24,10 @@ class Point:
     y: int
 
 
-@InstantAPI(app)
+api = InstantAPI(app)
+
+
+@api(swagger_view_attrs=dict(tags=["Point methods"]))
 class Methods:
     def translate(self, p: Point, dx: int, dy: int) -> Point:
         """
