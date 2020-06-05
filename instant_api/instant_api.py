@@ -3,6 +3,7 @@ import inspect
 import json
 import traceback
 from dataclasses import dataclass
+from textwrap import dedent
 from typing import Dict, Any, Optional
 
 from datafunctions import datafunction, ArgumentError
@@ -110,6 +111,7 @@ class InstantAPI:
         self.dispatcher = Dispatcher()
         self.swagger = Swagger(app, **(swagger_kwargs or {}))
         self._add_view(
+            {"tags": ["JSON-RPC"]},
             GLOBAL_PARAMS_SCHEMA,
             GLOBAL_SUCCESS_SCHEMA,
             self.path,
@@ -174,7 +176,7 @@ class InstantAPI:
                 data=data,
             )
 
-    def __call__(self, func_class_or_obj):
+    def __call__(self, func_class_or_obj: Any = None, *, swagger_view_attrs: dict = None):
         """
         Accepts any object, with special treatment for functions and classes,
         so this can be used as a decorator.
@@ -213,22 +215,42 @@ class InstantAPI:
         If you don't want a method to be added to the API,
         prefix its name with an underscore, e.g. `def _foo(...)`.
 
-        If a function has a docstring, it's first line will be shown in the Swagger UI.
+        For each function, a `flasgger.SwaggerView` will be created.
+        (see https://github.com/flasgger/flasgger#using-marshmallow-schemas)
+        You can customise the view by passing a dictionary class attributes
+        in the argument `swagger_view_attrs`
+        For example::
+
+            @api(swagger_view_attrs={"tags": ["Stuff"]})
+            def foo(...)
+
+        This will put `foo` in the `Stuff` section of the Swagger UI.
+
+        If a function has a docstring, its first line will be the "summary"
+        in the OpenAPI spec of the method path, visible in the overview in the Swagger UI.
+        The remaining lines will become the "description",
+        visible when the path is expanded in the UI.
         """
+
+        if func_class_or_obj is None:
+            # Decorator with arguments
+            return functools.partial(self, swagger_view_attrs=swagger_view_attrs)
+
         if isinstance(func_class_or_obj, type):
             cls = func_class_or_obj
-            self(cls())
+            self(cls(), swagger_view_attrs=swagger_view_attrs)
             return cls
 
-        self._decorate_function(func_class_or_obj)
+        # noinspection PyTypeChecker
+        self._decorate_function(func_class_or_obj, swagger_view_attrs)
         methods = func_class_or_obj
         for name, func in inspect.getmembers(methods):
             if not name.startswith("_"):
-                self._decorate_function(func)
+                self._decorate_function(func, swagger_view_attrs)
 
         return func_class_or_obj
 
-    def _decorate_function(self, func):
+    def _decorate_function(self, func, swagger_view_attrs):
         try:
             inspect.signature(func)
         except Exception:
@@ -254,16 +276,18 @@ class InstantAPI:
         Success.__name__ = f"{name}_success"
 
         self._add_view(
+            swagger_view_attrs or {},
             func.params_schemas.schema_class,
             Success,
             self.path + name,
             type(self).__name__ + "_" + name,
-            ((func.__doc__ or "").strip().splitlines() or [""])[0],
+            func.__doc__,
             method=name,
         )
 
     def _add_view(
             self,
+            swagger_view_attrs: dict,
             body_schema,
             success_schema,
             path: str,
@@ -274,6 +298,7 @@ class InstantAPI:
         instant_api_self = self
 
         class MethodView(SwaggerView):
+            summary, _, description = dedent(doc or "").strip().partition("\n")
             parameters = [
                 {
                     "name": "body",
@@ -286,11 +311,12 @@ class InstantAPI:
                 "Success": {"schema": success_schema},
                 "Error": {"schema": ERROR_SCHEMA},
             }
+            tags = ["Methods"]
+
+            locals().update(swagger_view_attrs)
 
             def post(self):
                 return instant_api_self.handle_request(method)
-
-        MethodView.post.__doc__ = doc
 
         self.app.add_url_rule(
             path,

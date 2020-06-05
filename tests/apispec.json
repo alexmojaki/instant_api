@@ -159,7 +159,10 @@
             }
           }
         },
-        "summary": "Generic JSON RPC endpoint"
+        "summary": "Generic JSON RPC endpoint",
+        "tags": [
+          "JSON-RPC"
+        ]
       }
     },
     "/api/translate": {
@@ -167,6 +170,7 @@
         "consumes": [
           "application/json"
         ],
+        "description": "Other stuff here that goes into the description.",
         "parameters": [
           {
             "in": "body",
@@ -215,7 +219,10 @@
             }
           }
         },
-        "summary": "Move a point by dx and dy."
+        "summary": "Move a point by dx and dy.",
+        "tags": [
+          "Point methods"
+        ]
       }
     }
   },

@@ -205,7 +205,24 @@ api(Methods())
 
 If a function is missing a type annotation for any of its parameters or for the return value, an exception will be raised. If you don't want a method to be added to the API, prefix its name with an underscore, e.g. `def _foo(...)`.
 
-If a function has a docstring, it's first line will be shown in the Swagger UI.
+#### Customising method paths in the Swagger UI
+
+For each method, a [`flasgger.SwaggerView`](https://github.com/flasgger/flasgger#using-marshmallow-schemas) will be created.
+You can customise the view by passing a dictionary class attributes
+in the argument `swagger_view_attrs`
+For example:
+
+```python
+@api(swagger_view_attrs={"tags": ["Stuff"]})
+def foo(...)
+```
+
+This will put `foo` in the `Stuff` section of the Swagger UI.
+
+If a method has a docstring, its first line will be the `summary`
+in the OpenAPI spec of the method path, visible in the overview in the Swagger UI.
+The remaining lines will become the `description`,
+visible when the path is expanded in the UI.
 
 ### Intercepting requests
 
