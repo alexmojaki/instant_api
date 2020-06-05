@@ -215,7 +215,21 @@ class InstantAPI:
         If you don't want a method to be added to the API,
         prefix its name with an underscore, e.g. `def _foo(...)`.
 
-        If a function has a docstring, it's first line will be shown in the Swagger UI.
+        For each function, a `flasgger.SwaggerView` will be created.
+        (see https://github.com/flasgger/flasgger#using-marshmallow-schemas)
+        You can customise the view by passing a dictionary class attributes
+        in the argument `swagger_view_attrs`
+        For example::
+
+            @api(swagger_view_attrs={"tags": ["Stuff"]})
+            def foo(...)
+
+        This will put `foo` in the `Stuff` section of the Swagger UI.
+
+        If a function has a docstring, its first line will be the "summary"
+        in the OpenAPI spec of the method path, visible in the overview in the Swagger UI.
+        The remaining lines will become the "description",
+        visible when the path is expanded in the UI.
         """
 
         if func_class_or_obj is None:
