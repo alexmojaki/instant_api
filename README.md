@@ -98,9 +98,7 @@ The `InstantAPI` class requires a Flask app and has the following optional keywo
 
 ### Errors
 
-The server will always (unless a request is not authenticated, see below) respond with HTTP code 200, even if there is an error in the RPC call. Instead the response body will contain an error code and other details. Complete information can be found in the [protocol spec](https://www.jsonrpc.org/specification#error_object) and the [json-rpc library docs](https://json-rpc.readthedocs.io/en/latest/exceptions.html). Below are the essentials.
-
-If a method is given invalid parameters, the details of the error (either a `TypeError` or a marshmallow `ValidationError`) will be included in the response. The error code will be `-32602`. The response JSON looks like this:
+When the server encounters an error, the response will contain an `error` key (instead of a `result`) with an object containing `code`, `data`, and `message`. For example, if a method is given invalid parameters, the details of the error (either a `TypeError` or a marshmallow `ValidationError`) will be included in the response. The error code will be `-32602`. The response JSON looks like this:
 
 ```json
 {
@@ -120,40 +118,24 @@ If a method is given invalid parameters, the details of the error (either a `Typ
 }
 ```
 
-If there's an error inside the method, the exception type and message will be in the response, e.g:
+You can find more details, including the standard error codes for some typical errors, in the [JSON-RPC protocol spec](https://www.jsonrpc.org/specification#error_object).
 
-```json
-{
-  "error": {
-    "code": -32000,
-    "data": {
-      "args": [
-        "division by zero"
-      ],
-      "message": "division by zero",
-      "type": "ZeroDivisionError"
-    },
-    "message": "Server error"
-  },
-  "id": 0,
-  "jsonrpc": "2.0"
-}
-```
+The HTTP status code depends on which flavour of the API you use. The central JSON-RPC endpoint will always (unless a request is not authenticated, see below) return the code 200, even if there's an error, as standard clients expect that. Since the method paths are not quite JSON-RPC, they may return a different code in case of errors. In particular an invalid request will lead to a 400 and an unhandled error inside a method will cause a 500.
 
-If you'd like to control the error response directly, raise a `JSONRPCDispatchException` in your method, e.g:
+To return your own custom error information, raise an `InstantError` in your method, e.g:
 
 ```python
-from jsonrpc.exceptions import JSONRPCDispatchException
-from instant_api import InstantAPI
+from instant_api import InstantAPI, InstantError
 
 @InstantAPI(app)
 class Methods:
     def find_thing(self, thing_id: int) -> Thing:
         ...
-        raise JSONRPCDispatchException(
-            code=40404,
+        raise InstantError(
+            code=123,
             message="Thing not found anywhere at all",
             data=["not here", "or here"],
+            http_code=404,
         )
 ```
 
@@ -162,7 +144,7 @@ The response will then be:
 ```json
 {
   "error": {
-    "code": 40404,
+    "code": 123,
     "data": [
       "not here",
       "or here"
@@ -173,6 +155,8 @@ The response will then be:
   "jsonrpc": "2.0"
 }
 ```
+
+and the HTTP status code will be 404 (as specified by the `http_code` argument) if a method path is used, or 200 if the central JSON-RPC endpoint is used.
 
 ### Attaching methods
 
