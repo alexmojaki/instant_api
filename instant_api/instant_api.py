@@ -160,7 +160,7 @@ class InstantAPI:
 
         if result is None:
             # Request was a notification, i.e. client doesn't need response
-            return ""
+            return "", 200
         else:
             http_code = 200
             if result.error:

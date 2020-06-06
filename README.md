@@ -9,7 +9,24 @@
     
 # instant_api
 
-Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. All the boring stuff is done for you. Just add methods!
+Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. All the boring stuff is done for you, so you can focus on the interesting logic while having an awesome API. Just add methods!
+
+  * [Installation](#installation)
+  * [Basic usage](#basic-usage)
+     * [Talking to the API with instant_client](#talking-to-the-api-with-instant_client)
+  * [Using method paths instead of JSON-RPC](#using-method-paths-instead-of-json-rpc)
+     * [HTTP status codes](#http-status-codes)
+  * [Overall API configuration](#global-api-configuration)
+  * [Handling errors](#handling-errors)
+  * [Attaching methods](#attaching-methods)
+     * [Customising method paths in the Swagger UI](#customising-method-paths-in-the-swagger-ui)
+        * [Setting attributes directly](#setting-attributes-directly)
+        * [Setting summary and description via the docstring](#setting-summary-and-description-via-the-docstring)
+  * [Customising global request and method handling](#customising-global-request-and-method-handling)
+  * [Authentication](#authentication)
+  * [Dependencies](#dependencies)
+
+## Installation
 
     pip install instant-api
 
@@ -17,7 +34,9 @@ Or to also install the corresponding Python client:
 
     pip install 'instant-api[client]'
 
-Basic usage looks like the below. Just write some Python functions or methods and decorate them. Parameters and the return value need type annotations so that they can be converted to and from JSON for you. You can use dataclasses for complex values.
+## Basic usage
+
+Just write some Python functions or methods and decorate them. Parameters and the return value need type annotations so that they can be converted to and from JSON for you. You can use dataclasses for complex values.
 
 ```python
 from dataclasses import dataclass
@@ -49,7 +68,7 @@ Visit http://127.0.0.1:5000/apidocs/ for a complete Swagger GUI to try out the A
 
 ![Swagger overview](images/swagger_overview.png)
 
-The API has two flavours. Firstly, the generic endpoint `/api/` implements the standard [JSON-RPC](https://www.jsonrpc.org/) protocol, making it easy to use libraries in existing languages to communicate with minimal boilerplate.
+### Talking to the API with `instant_client`
 
 If you need a Python client, I highly recommend the companion library [instant_client](https://github.com/alexmojaki/instant_client). It handles data conversion on the client side and works well with developer tools. Basic usage looks like:
 
@@ -65,7 +84,14 @@ assert methods.scale(Point(1, 2), factor=3) == Point(3, 6)
 
 That looks a lot like it just called `Methods.scale()` directly, which is the point (no pun intended), but under the hood it did in fact send an HTTP request to the server.
 
-You can also make requests directly to paths for each method, sending only the parameters object, which is a bit simpler than the full JSON-RPC protocol. Here's what such a call looks like:  
+## Using method paths instead of JSON-RPC
+
+The API is automatically available in two flavours, and clients can choose which way they prefer to communicate:
+
+1. The central JSON-RPC endpoint, which follows the JSON-RPC protocol spec exactly, and is easiest to use with standard client libraries.
+2. Method paths, which make it slightly easier for humans to write requests manually (especially in the Swagger GUI) and use the features of HTTP more.
+
+To make a request to a method path, include the method name at the end of the URL, and just send the parameters object in the JSON body. Here's what such a call looks like:
 
 ```python
 import requests
@@ -83,20 +109,22 @@ assert response.json()['result'] == {'x': 3, 'y': 6}
 
 The response will be a complete JSON-RPC response as if you had made a full JSON-RPC request. In particular it will either have a `result` or an `error` key.
 
-`instant_api` and `instant_client` use [`datafunctions`](https://github.com/alexmojaki/datafunctions) under the hood (which in turn uses [`marshmallow`](https://marshmallow.readthedocs.io/)) to transparently handle conversion between JSON and Python classes on both ends. All this means you can focus on writing 'normal' Python and worry less about the communication details. The Swagger UI is provided by [Flasgger](https://github.com/flasgger/flasgger), and the protocol is handled by the [json-rpc](https://github.com/pavlov99/json-rpc) library.
+### HTTP status codes
 
-Because other libraries do so much of the work, `instant_api` itself is a very small library, essentially contained in [one little file](https://github.com/alexmojaki/instant_api/blob/master/instant_api/instant_api.py). You can probably read the source code pretty easily and adapt it to your needs. 
+The central JSON-RPC endpoint will always (unless a request is not authenticated, [see below](#authentication)) return the code HTTP status code 200 (OK), even if there's an error, as standard clients expect that.
 
-## Configuration and other details
+Since the method paths are not quite JSON-RPC, they may return a different code in case of errors. In particular an invalid request will lead to a 400 and an unhandled error inside a method will cause a 500.
 
-### Class parameters
+If you [raise an `InstantError`](#handling-errors) inside a method, you can give it an `http_code`, e.g. `raise InstantError(..., http_code=404)`. This will become the HTTP status code *only if the method was called by the method path, not the JSON-RPC endpoint*.
+
+## Global API configuration
 
 The `InstantAPI` class requires a Flask app and has the following optional keyword-only parameters:
 
-- `path` is a string (default `'/api/'`) which is the endpoint that will be added to the app for the JSON RPC. This is where requests will be POSTed. There will also be a path for each method based on the function name, e.g. `/api/scale` and `/api/translate`, but these all behave identically (in particular the body must still specify a `"method"` key) and are only there to make the Swagger UI usable.
-- `swagger_kwargs` is a dictionary (default empty) of keyword arguments to pass to the [`flasgger.Swagger`](https://github.com/flasgger/flasgger#externally-loading-swagger-ui-and-jquery-jscss) constructor that is called with the app.
+- `path` is a string (default `'/api/'`) which is the endpoint that will be added to the app for the JSON RPC. This is where requests will be POSTed. There will also be a path for each method based on the function name, e.g. `/api/scale` and `/api/translate` - see [Using method paths instead of JSON-RPC](#using-method-paths-instead-of-json-rpc).
+- `swagger_kwargs` is a dictionary (default empty) of keyword arguments to pass to the `flasgger.Swagger` constructor that is called with the app. For example, you can customise the Swagger UI by [passing a dictionary to `config`](https://github.com/flasgger/flasgger#customize-default-configurations).
 
-### Errors
+## Handling errors
 
 When the server encounters an error, the response will contain an `error` key (instead of a `result`) with an object containing `code`, `data`, and `message`. For example, if a method is given invalid parameters, the details of the error (either a `TypeError` or a marshmallow `ValidationError`) will be included in the response. The error code will be `-32602`. The response JSON looks like this:
 
@@ -120,8 +148,6 @@ When the server encounters an error, the response will contain an `error` key (i
 
 You can find more details, including the standard error codes for some typical errors, in the [JSON-RPC protocol spec](https://www.jsonrpc.org/specification#error_object).
 
-The HTTP status code depends on which flavour of the API you use. The central JSON-RPC endpoint will always (unless a request is not authenticated, see below) return the code 200, even if there's an error, as standard clients expect that. Since the method paths are not quite JSON-RPC, they may return a different code in case of errors. In particular an invalid request will lead to a 400 and an unhandled error inside a method will cause a 500.
-
 To return your own custom error information, raise an `InstantError` in your method, e.g:
 
 ```python
@@ -135,7 +161,6 @@ class Methods:
             code=123,
             message="Thing not found anywhere at all",
             data=["not here", "or here"],
-            http_code=404,
         )
 ```
 
@@ -156,11 +181,11 @@ The response will then be:
 }
 ```
 
-and the HTTP status code will be 404 (as specified by the `http_code` argument) if a method path is used, or 200 if the central JSON-RPC endpoint is used.
+The HTTP status code depends on which flavour of the API you use - see [this section](#http-status-codes).
 
-### Attaching methods
+## Attaching methods
 
-Instances of `InstantAPI` can be called with functions, classes, or arbitrary objects to add methods to the API. For functions and classes, the `InstantAPI` can be used as a decorators to call it.
+Instances of `InstantAPI` can be called with functions, classes, or arbitrary objects to add methods to the API. For functions and classes, the instance can be used as a decorator to call it.
 
 Decorating a single function adds it as an API method, as you'd expect. The function itself should not be a method of a class, since there is no way to provide the first argument `self`.
 
@@ -189,11 +214,13 @@ api(Methods())
 
 If a function is missing a type annotation for any of its parameters or for the return value, an exception will be raised. If you don't want a method to be added to the API, prefix its name with an underscore, e.g. `def _foo(...)`.
 
-#### Customising method paths in the Swagger UI
+### Customising method paths in the Swagger UI
+
+#### Setting attributes directly
 
 For each method, a [`flasgger.SwaggerView`](https://github.com/flasgger/flasgger#using-marshmallow-schemas) will be created.
-You can customise the view by passing a dictionary class attributes
-in the argument `swagger_view_attrs`
+You can customise the view by passing a dictionary of class attributes
+in the argument `swagger_view_attrs` of the decorator.
 For example:
 
 ```python
@@ -203,12 +230,21 @@ def foo(...)
 
 This will put `foo` in the `Stuff` section of the Swagger UI.
 
+Note that the below is invalid syntax [before Python 3.9](https://www.python.org/dev/peps/pep-0614/):
+
+```python
+@InstantAPI(app)(swagger_view_attrs={"tags": ["Stuff"]})
+def foo(...)
+```
+
+#### Setting summary and description via the docstring
+
 If a method has a docstring, its first line will be the `summary`
 in the OpenAPI spec of the method path, visible in the overview in the Swagger UI.
 The remaining lines will become the `description`,
 visible when the path is expanded in the UI.
 
-### Intercepting requests
+## Customising global request and method handling
 
 To directly control how requests are handled, create a subclass of `InstantAPI` and override one of these methods:
 
@@ -217,13 +253,21 @@ To directly control how requests are handled, create a subclass of `InstantAPI` 
 
 Unless you're doing something very weird, remember to call the parent method with `super()` somewhere.
 
-### Authentication
+## Authentication
 
 To require authentication for requests:
 
 1. Create a subclass of `InstantAPI`.
 2. Override the method `def is_authenticated(self):`.
-3. Return a boolean: `True` if a user should have access, `False` if they should be denied.
+3. Return a boolean: `True` if a user should have access (based on the global Flask `request` object), `False` if they should be denied.
 4. Use an instance of your subclass to decorate methods.
 
 Unauthenticated requests will receive a 403 response with a non-JSON body.
+
+## Dependencies
+
+- [**`datafunctions`**](https://github.com/alexmojaki/datafunctions) (which in turn uses [`marshmallow`](https://marshmallow.readthedocs.io/)) is used by both `instant_api` and `instant_client` to transparently handle conversion between JSON and Python classes on both ends.
+- [**Flasgger**](https://github.com/flasgger/flasgger) provides the Swagger UI.
+- [**`json-rpc`**](https://github.com/pavlov99/json-rpc) handles the protocol.
+
+Because other libraries do so much of the work, `instant_api` itself is a very small library, essentially contained in [one little file](https://github.com/alexmojaki/instant_api/blob/master/instant_api/instant_api.py). You can probably read the source code pretty easily and adapt it to your needs.
