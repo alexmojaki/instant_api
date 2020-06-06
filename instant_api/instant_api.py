@@ -45,6 +45,14 @@ ERROR_SCHEMA = _make_schema(
 )
 
 
+@dataclass
+class InstantError(Exception):
+    code: int
+    message: str
+    data: Any = None
+    http_code: int = 500
+
+
 class InstantAPI:
     """
     Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Swagger UI. Just add methods!
@@ -152,9 +160,30 @@ class InstantAPI:
 
         if result is None:
             # Request was a notification, i.e. client doesn't need response
-            return ""
+            return "", 200
         else:
-            return result.data
+            http_code = 200
+            if result.error:
+                data = result.error.get("data")
+                # See the InstantError handler at the end of call_method
+                if isinstance(data, dict) and "__instant_http_code" in data:
+                    http_code = data["__instant_http_code"]
+                    result.error["data"] = data["data"]
+                else:
+                    if result.error.get("code") in [
+                        -32700,  # JSON parse error
+                        -32600,  # Invalid JSON structure
+                        -32602,  # Invalid params
+                    ]:
+                        http_code = 400  # Bad request
+                    else:
+                        http_code = 500  # Internal server error
+
+            # JSON RPC must always return 200
+            if method is None:
+                http_code = 200
+
+            return result.data, http_code
 
     def call_method(self, func, *args, **kwargs):
         """
@@ -162,18 +191,45 @@ class InstantAPI:
         The arguments here are not yet deserialized according to the function type annotations.
         """
         try:
-            return func(*args, **kwargs)
-        except ArgumentError as e:
-            e = e.__cause__
-            if isinstance(e, ValidationError):
-                data = e.messages
-            else:
-                data = None
+            try:
+                return func(*args, **kwargs)
+            except InstantError:
+                raise
+            except ArgumentError as e:
+                e = e.__cause__
+                if isinstance(e, ValidationError):
+                    data = e.messages
+                else:
+                    data = None
 
+                raise InstantError(
+                    code=-32602,  # Invalid params
+                    message=format_exception(e),
+                    data=data,
+                    http_code=400,
+                )
+            except JSONRPCDispatchException as e:
+                raise InstantError(
+                    code=e.error.code,
+                    message=e.error.message,
+                    data=e.error.data,
+                )
+            except Exception:
+                raise InstantError(
+                    code=-32000,
+                    message=f"Unhandled error in method {func.__name__}",
+                )
+        except InstantError as e:
             raise JSONRPCDispatchException(
-                code=-32602,  # Invalid params
-                message=format_exception(e),
-                data=data,
+                code=e.code,
+                message=e.message,
+                # Mash the http_code in here to be extracted later in handle_request
+                # There's no easy way to get this info through the json-rpc
+                # library up to the final response
+                data=dict(
+                    __instant_http_code=e.http_code,
+                    data=e.data,
+                ),
             )
 
     def __call__(self, func_class_or_obj: Any = None, *, swagger_view_attrs: dict = None):

@@ -1,4 +1,4 @@
-from .instant_api import InstantAPI
+from .instant_api import InstantAPI, InstantError
 
 try:
     from .version import __version__
