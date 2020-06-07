@@ -16,7 +16,7 @@ Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Sw
      * [Talking to the API with instant_client](#talking-to-the-api-with-instant_client)
   * [Using method paths instead of JSON-RPC](#using-method-paths-instead-of-json-rpc)
      * [HTTP status codes](#http-status-codes)
-  * [Overall API configuration](#global-api-configuration)
+  * [Global API configuration](#global-api-configuration)
   * [Handling errors](#handling-errors)
   * [Attaching methods](#attaching-methods)
      * [Customising method paths in the Swagger UI](#customising-method-paths-in-the-swagger-ui)
