@@ -281,7 +281,7 @@ Because other libraries do so much of the work, `instant_api` itself is a very s
 
 This library takes obvious inspiration from [FastAPI](https://github.com/tiangolo/fastapi). So why did I write this, and why might you want to use it?
 
-- It's really great with `instant_client`, which lets you feel like you're calling methods locally (and your IDE helps you as if you are) even though they're executed remotely.
+- It's really great with [`instant_client`](https://github.com/alexmojaki/instant_client), which lets you feel like you're calling methods locally (and your IDE helps you as if you are) even though they're executed remotely.
 - It's easier to set up, as you don't have to specify paths or HTTP methods. If you group everything into a class, you just have to decorate the whole thing once. It's almost the minimum amount of boilerplate possible.
 - JSON-RPC is pretty cool.
     - It's a popular, standard protocol that has client libraries written in many languages.
