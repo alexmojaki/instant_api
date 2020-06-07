@@ -25,6 +25,7 @@ Instantly create an HTTP API with automatic type conversions, JSON RPC, and a Sw
   * [Customising global request and method handling](#customising-global-request-and-method-handling)
   * [Authentication](#authentication)
   * [Dependencies](#dependencies)
+  * [Why use this library?](#why-use-this-library)
 
 ## Installation
 
@@ -275,3 +276,19 @@ Unauthenticated requests will receive a 403 response with a non-JSON body.
 - [**`json-rpc`**](https://github.com/pavlov99/json-rpc) handles the protocol.
 
 Because other libraries do so much of the work, `instant_api` itself is a very small library, essentially contained in [one little file](https://github.com/alexmojaki/instant_api/blob/master/instant_api/instant_api.py). You can probably read the source code pretty easily and adapt it to your needs.
+
+## Why use this library?
+
+This library takes obvious inspiration from [FastAPI](https://github.com/tiangolo/fastapi). So why did I write this, and why might you want to use it?
+
+- It's really great with `instant_client`, which lets you feel like you're calling methods locally (and your IDE helps you as if you are) even though they're executed remotely.
+- It's easier to set up, as you don't have to specify paths or HTTP methods. If you group everything into a class, you just have to decorate the whole thing once. It's almost the minimum amount of boilerplate possible.
+- JSON-RPC is pretty cool.
+    - It's a popular, standard protocol that has client libraries written in many languages.
+    - It lets you do bulk requests: send an array of requests, get an array of responses back.
+    - It supports notifications for when you don't care about the result.
+- It's great when you want to work with Flask (e.g. to use other Flask libraries), or more generally if you want a WSGI application without having to embed it inside FastAPI.
+
+  When my use case for this popped up, I considered FastAPI, but being able to use Flask (specifically Plotly Dash) was a hard requirement. The API was only a small part of a larger project, so I didn't want FastAPI to be 'in charge'.
+
+  I tried looking through the source code of FastAPI to extract the bits I needed, like generating the Swagger spec from type annotations, but the code is very complicated and this wasn't worth it. So I wrote my own version where the dependencies do the hard work like that in a nice modular manner. What's left is a small, readable library that largely just wires other stuff together. This way if someone else is in the same situation as me where they have slightly different needs, it's now feasible for them to adapt the source code.
