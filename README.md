@@ -121,8 +121,12 @@ If you [raise an `InstantError`](#handling-errors) inside a method, you can give
 
 The `InstantAPI` class requires a Flask app and has the following optional keyword-only parameters:
 
-- `path` is a string (default `'/api/'`) which is the endpoint that will be added to the app for the JSON RPC. This is where requests will be POSTed. There will also be a path for each method based on the function name, e.g. `/api/scale` and `/api/translate` - see [Using method paths instead of JSON-RPC](#using-method-paths-instead-of-json-rpc).
-- `swagger_kwargs` is a dictionary (default empty) of keyword arguments to pass to the `flasgger.Swagger` constructor that is called with the app. For example, you can customise the Swagger UI by [passing a dictionary to `config`](https://github.com/flasgger/flasgger#customize-default-configurations).
+- `path` is a string (default `'/api/'`) which is the endpoint that will be added to the app for the JSON RPC. There will also be a path for each method based on the function name, e.g. `/api/scale` and `/api/translate` - see [Using method paths instead of JSON-RPC](#using-method-paths-instead-of-json-rpc). Specify a different string to change all of these paths.
+- `swagger_kwargs` is a dictionary (default empty) of keyword arguments to pass to the `flasgger.Swagger` constructor that is called with the app. For example, you can customise the Swagger UI by [passing a dictionary to `config`](https://github.com/flasgger/flasgger#customize-default-configurations):
+
+```python
+api = InstantAPI(app, swagger_kwargs={"config": {"specs_route": "/my_apidocs/", ...}})
+```
 
 ## Handling errors
 
