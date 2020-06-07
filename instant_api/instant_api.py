@@ -47,6 +47,12 @@ ERROR_SCHEMA = _make_schema(
 
 @dataclass
 class InstantError(Exception):
+    """
+    Raise an instance of InstantError in your method to return an error response
+    containing the given code, message, and data in the body.
+    The http_code field will be the HTTP status code, *only if
+    the method is called through the method path instead of JSON-RPC*.
+    """
     code: int
     message: str
     data: Any = None
@@ -106,13 +112,16 @@ class InstantAPI:
             that will be added to the app for the JSON RPC.
             This is where requests will be POSTed.
             There will also be a path for each method based on the function name,
-            e.g. `/api/scale` and `/api/translate`, but these all behave identically
-            (in particular the body must still specify a `"method"` key)
-            and are only there to make the Swagger UI usable.
+            e.g. `/api/scale` and `/api/translate`, see
+            https://github.com/alexmojaki/instant_api#using-method-paths-instead-of-json-rpc
         - `swagger_kwargs` is a dictionary of keyword arguments
-            to pass to the `flasgger.Swagger`
-            (https://github.com/flasgger/flasgger#externally-loading-swagger-ui-and-jquery-jscss)
-            constructor that is called with the app.
+            to pass to the `flasgger.Swagger` constructor that is called with the app.
+            For example, you can customise the Swagger UI by passing a dictionary to `config`
+            (https://github.com/flasgger/flasgger#customize-default-configurations)::
+
+                api = InstantAPI(app, swagger_kwargs={
+                    "config": {"specs_route": "/my_apidocs/", ...}
+                })
         """
         self.app = app
         self.path = path.rstrip("/") + "/"
