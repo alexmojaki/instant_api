@@ -1,3 +1,4 @@
+import logging
 import functools
 import inspect
 import json
@@ -13,6 +14,8 @@ from jsonrpc import Dispatcher, JSONRPCResponseManager
 from jsonrpc.exceptions import JSONRPCDispatchException
 from marshmallow import ValidationError
 from marshmallow_dataclass import class_schema
+
+log = logging.getLogger("instant_api")
 
 
 def _make_schema(**extra_props):
@@ -224,9 +227,11 @@ class InstantAPI:
                     data=e.error.data,
                 )
             except Exception:
+                message = f"Unhandled error in method {func.__name__}"
+                log.exception(message)
                 raise InstantError(
                     code=-32000,
-                    message=f"Unhandled error in method {func.__name__}",
+                    message=message,
                 )
         except InstantError as e:
             raise JSONRPCDispatchException(
