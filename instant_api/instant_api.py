@@ -204,7 +204,9 @@ class InstantAPI:
         """
         try:
             try:
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                log.info(f"Successfully called method {func.__name__}")
+                return result
             except InstantError:
                 raise
             except ArgumentError as e:
